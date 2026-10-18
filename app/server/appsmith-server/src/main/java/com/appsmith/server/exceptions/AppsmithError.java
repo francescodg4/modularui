@@ -664,6 +664,14 @@ public enum AppsmithError {
             "Too many requests",
             ErrorType.INTERNAL_ERROR,
             null),
+    AI_PROVIDER_ERROR(
+            502,
+            AppsmithErrorCode.AI_PROVIDER_ERROR.getCode(),
+            "The AI provider returned an error: {0}",
+            AppsmithErrorAction.DEFAULT,
+            "AI provider error",
+            ErrorType.CONNECTIVITY_ERROR,
+            null),
     INVALID_JS_ACTION(
             400,
             AppsmithErrorCode.INVALID_JS_ACTION.getCode(),

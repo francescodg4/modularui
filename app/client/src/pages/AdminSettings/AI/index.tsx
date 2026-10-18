@@ -16,6 +16,31 @@ const DEFAULT_CLAUDE_BASE_URL = "https://api.anthropic.com";
 const DEFAULT_OPENAI_MODEL = "gpt-4";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
 
+// The OpenAI provider calls `<base URL>/v1/chat/completions`, so it also works with OpenAI-compatible APIs.
+const OPENAI_COMPATIBLE_PRESETS = [
+  {
+    label: "OpenAI",
+    baseUrl: DEFAULT_OPENAI_BASE_URL,
+    model: "gpt-4o",
+    keyUrl: "https://platform.openai.com/api-keys",
+  },
+  {
+    label: "Groq (free tier)",
+    baseUrl: "https://api.groq.com/openai",
+    model: "openai/gpt-oss-120b",
+    keyUrl: "https://console.groq.com/keys",
+  },
+];
+
+function getOpenAICompatibleKeyUrl(baseUrl: string): string {
+  const normalized = baseUrl.trim().replace(/\/+$/, "");
+  const preset = OPENAI_COMPATIBLE_PRESETS.find(
+    (entry) => entry.baseUrl === normalized,
+  );
+
+  return preset ? preset.keyUrl : "your provider's dashboard";
+}
+
 // Response types (unwrapped by axios interceptors)
 interface ExternalReferenceFile {
   filename: string;
@@ -947,7 +972,10 @@ function AISettings() {
             }}
             options={[
               { label: "Claude (Anthropic)", value: "CLAUDE" },
-              { label: "OpenAI (ChatGPT)", value: "OPENAI" },
+              {
+                label: "OpenAI or compatible (Groq, OpenRouter)",
+                value: "OPENAI",
+              },
               { label: "Azure OpenAI", value: "AZURE_OPENAI" },
               { label: "Use Local LLM", value: "LOCAL_LLM" },
             ]}
@@ -1046,7 +1074,34 @@ function AISettings() {
           <>
             <FieldWrapper>
               <LabelWrapper>
-                <Text kind="body-m">OpenAI API Key</Text>
+                <Text kind="body-m">Preset</Text>
+              </LabelWrapper>
+              <ButtonRow>
+                {OPENAI_COMPATIBLE_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    kind="secondary"
+                    onClick={function handleOpenaiPresetClick() {
+                      setOpenaiBaseUrl(preset.baseUrl);
+                      setOpenaiModel(preset.model);
+                      setApiKeyTestResult(null);
+                    }}
+                    size="sm"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </ButtonRow>
+              <HintText color="var(--ads-v2-color-fg-muted)" kind="body-s">
+                Fills in the base URL and model. Any API that serves
+                /v1/chat/completions works, for example OpenRouter with base URL
+                https://openrouter.ai/api.
+              </HintText>
+            </FieldWrapper>
+
+            <FieldWrapper>
+              <LabelWrapper>
+                <Text kind="body-m">API Key</Text>
               </LabelWrapper>
               <Input
                 aria-label="OpenAI API Key"
@@ -1057,13 +1112,13 @@ function AISettings() {
                 placeholder={
                   hasStoredOpenaiApiKey
                     ? "A key is saved — enter a new one to replace it"
-                    : "Enter OpenAI API key"
+                    : "Enter the API key"
                 }
                 type="password"
                 value={openaiApiKey}
               />
               <Text color="var(--ads-v2-color-fg-muted)" kind="body-s">
-                Get your API key from https://platform.openai.com/api-keys
+                Get your API key from {getOpenAICompatibleKeyUrl(openaiBaseUrl)}
               </Text>
             </FieldWrapper>
 
@@ -1081,7 +1136,8 @@ function AISettings() {
                 value={openaiModel}
               />
               <HintText color="var(--ads-v2-color-fg-muted)" kind="body-s">
-                OpenAI model to use (e.g. gpt-4, gpt-4o, gpt-3.5-turbo)
+                Model to use (e.g. gpt-4o for OpenAI, openai/gpt-oss-120b for
+                Groq)
               </HintText>
             </FieldWrapper>
 
@@ -1099,7 +1155,8 @@ function AISettings() {
                 value={openaiBaseUrl}
               />
               <HintText color="var(--ads-v2-color-fg-muted)" kind="body-s">
-                API base URL. Change only if using a proxy or custom endpoint.
+                API base URL, without /v1. Change it to use an OpenAI-compatible
+                provider, a proxy or a custom endpoint.
               </HintText>
             </FieldWrapper>
 

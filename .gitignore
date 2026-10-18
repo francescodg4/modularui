@@ -57,3 +57,6 @@ card-widget-height-verified.png
 card-bind-flow-dp.png
 # Artifacts staged by scripts/local.ps1 for the local image
 deploy/docker/local-build/
+
+# Local API keys
+*.key

@@ -12,6 +12,7 @@ import com.appsmith.server.exceptions.AppsmithError;
 import com.appsmith.server.exceptions.AppsmithErrorCode;
 import com.appsmith.server.exceptions.AppsmithException;
 import com.appsmith.server.helpers.ce.AIConfigSecretsCE;
+import com.appsmith.server.helpers.ce.AIProviderErrorMessageCE;
 import com.appsmith.server.services.AnalyticsService;
 import com.appsmith.server.services.OrganizationService;
 import com.appsmith.server.services.SessionUserService;
@@ -944,7 +945,8 @@ public class AIConfigServiceCEImpl implements AIConfigServiceCE {
             String baseUrl,
             String model) {
 
-        steps.add(createStep("API Key Format", "success", "Key starts with 'sk-'"));
+        // OpenAI-compatible providers (Groq, OpenRouter, ...) use other key formats, so the format is not checked.
+        steps.add(createStep("API Key Format", "success", "Key format accepted"));
 
         String payload = "{\"model\":\"" + model
                 + "\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello\"}],\"max_tokens\":5}";
@@ -958,7 +960,7 @@ public class AIConfigServiceCEImpl implements AIConfigServiceCE {
                 .header("Authorization", "Bearer " + apiKey)
                 .bodyValue(payload)
                 .exchangeToMono(clientResponse -> {
-                    steps.add(createStep("API Connection", "success", "Connected to OpenAI API"));
+                    steps.add(createStep("API Connection", "success", "Connected to the API"));
 
                     return clientResponse
                             .bodyToMono(String.class)
@@ -1023,8 +1025,10 @@ public class AIConfigServiceCEImpl implements AIConfigServiceCE {
                                 } else {
                                     steps.add(createStep("API Request", "error", "HTTP " + statusCode));
                                     response.put("success", false);
-                                    response.put("error", "OpenAI API returned HTTP " + statusCode);
-                                    if (responseBody.length() < 500) {}
+                                    response.put(
+                                            "error",
+                                            "The API returned "
+                                                    + AIProviderErrorMessageCE.describe(statusCode, responseBody));
                                 }
 
                                 response.put("steps", steps);
@@ -1039,7 +1043,7 @@ public class AIConfigServiceCEImpl implements AIConfigServiceCE {
                     response.put("provider", "OpenAI");
 
                     steps.add(createStep("API Connection", "error", "Failed to connect"));
-                    response.put("error", "Failed to connect to OpenAI API: " + error.getMessage());
+                    response.put("error", "Failed to connect to the API: " + error.getMessage());
                     response.put(
                             "suggestions",
                             List.of(
@@ -1147,14 +1151,18 @@ public class AIConfigServiceCEImpl implements AIConfigServiceCE {
                                         steps.add(createStep("Authentication", "success", "API key accepted"));
                                         steps.add(createStep("Request", "error", "Bad request"));
                                         response.put("success", false);
-                                        response.put("error", "API request error (key may still be valid)");
+                                        response.put(
+                                                "error",
+                                                "The key is valid but the request was refused: "
+                                                        + AIProviderErrorMessageCE.describe(statusCode, responseBody));
                                     }
-                                    if (responseBody.length() < 500) {}
                                 } else {
                                     steps.add(createStep("API Request", "error", "HTTP " + statusCode));
                                     response.put("success", false);
-                                    response.put("error", "Anthropic API returned HTTP " + statusCode);
-                                    if (responseBody.length() < 500) {}
+                                    response.put(
+                                            "error",
+                                            "Anthropic API returned "
+                                                    + AIProviderErrorMessageCE.describe(statusCode, responseBody));
                                 }
 
                                 response.put("steps", steps);

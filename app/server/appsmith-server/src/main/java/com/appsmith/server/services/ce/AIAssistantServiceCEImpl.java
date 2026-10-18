@@ -17,6 +17,7 @@ import com.appsmith.server.dtos.AIMessageDTO;
 import com.appsmith.server.exceptions.AppsmithError;
 import com.appsmith.server.exceptions.AppsmithException;
 import com.appsmith.server.helpers.ce.AIConfigSecretsCE;
+import com.appsmith.server.helpers.ce.AIProviderErrorMessageCE;
 import com.appsmith.server.helpers.ce.AiDatasourceSchemaSerializerCE;
 import com.appsmith.server.newactions.base.NewActionService;
 import com.appsmith.server.plugins.base.PluginService;
@@ -536,8 +537,11 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
                                 // can retry rather than treat it as a server fault.
                                 return Mono.error(new AppsmithException(AppsmithError.TOO_MANY_REQUESTS));
                             }
+                            // Pass the provider's own message on: "credit balance too low", "model not found" and
+                            // "request too large" each need a different fix, and a generic error hid all three.
                             return Mono.error(new AppsmithException(
-                                    AppsmithError.INTERNAL_SERVER_ERROR, "AI API request failed"));
+                                    AppsmithError.AI_PROVIDER_ERROR,
+                                    AIProviderErrorMessageCE.describe(statusCode, errorBody)));
                         }))
                 .bodyToMono(JsonNode.class)
                 .map(this::extractClaudeResponse)
@@ -596,8 +600,11 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
                                 // can retry rather than treat it as a server fault.
                                 return Mono.error(new AppsmithException(AppsmithError.TOO_MANY_REQUESTS));
                             }
+                            // Pass the provider's own message on: "credit balance too low", "model not found" and
+                            // "request too large" each need a different fix, and a generic error hid all three.
                             return Mono.error(new AppsmithException(
-                                    AppsmithError.INTERNAL_SERVER_ERROR, "AI API request failed"));
+                                    AppsmithError.AI_PROVIDER_ERROR,
+                                    AIProviderErrorMessageCE.describe(statusCode, errorBody)));
                         }))
                 .bodyToMono(JsonNode.class)
                 .map(this::extractOpenAICompatibleResponse)
