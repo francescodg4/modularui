@@ -32,18 +32,9 @@ export type BlockPanelSection =
 const StyledModalContent = styled(ModalContent)`
   width: 760px;
   max-width: 90vw;
+  /* A fixed height keeps the modal from jumping between tabs; the body scrolls. Do not make the tab panels flex
+     items: the tabs root has max-height: fit-content, which collapses a flex: 1 panel to zero height. */
   height: 80vh;
-
-  .block-panel-tabs {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .block-panel-tab {
-    flex: 1;
-    overflow: auto;
-  }
 `;
 
 interface BlockPanelProps {
@@ -83,7 +74,6 @@ function BlockPanel(props: BlockPanelProps) {
         <ModalHeader>{widget.title || widget.widgetName}</ModalHeader>
         <ModalBody>
           <Tabs
-            className="block-panel-tabs"
             onValueChange={(value) =>
               props.onSectionChange(value as BlockPanelSection)
             }
@@ -97,20 +87,20 @@ function BlockPanel(props: BlockPanelProps) {
               {hasController && <Tab value="script">Script</Tab>}
               <Tab value="permissions">Permissions</Tab>
             </TabsList>
-            <TabPanel className="block-panel-tab" value="settings">
+            <TabPanel value="settings">
               <SettingsPanel widget={widget} />
             </TabPanel>
-            <TabPanel className="block-panel-tab" value="prompt">
+            <TabPanel value="prompt">
               <AgentPanel widgetId={widget.widgetId} />
             </TabPanel>
-            <TabPanel className="block-panel-tab" value="snapshots">
+            <TabPanel value="snapshots">
               <SnapshotsPanel widget={widget} />
             </TabPanel>
-            <TabPanel className="block-panel-tab" value="layout">
+            <TabPanel value="layout">
               <LayoutPanel widget={widget} />
             </TabPanel>
             {hasController && (
-              <TabPanel className="block-panel-tab" value="script">
+              <TabPanel value="script">
                 <ScriptPanel
                   controllerState={props.controllerState}
                   onOpenSnapshots={() => props.onSectionChange("snapshots")}
@@ -120,7 +110,7 @@ function BlockPanel(props: BlockPanelProps) {
                 />
               </TabPanel>
             )}
-            <TabPanel className="block-panel-tab" value="permissions">
+            <TabPanel value="permissions">
               <PermissionsPanel widget={widget} />
             </TabPanel>
           </Tabs>
