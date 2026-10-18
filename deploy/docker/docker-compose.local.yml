@@ -1,0 +1,7 @@
+# Override for docker-compose.yml that runs the image built from this repository by scripts/local.ps1.
+# Same container, port and data (./stacks) as the official image.
+
+services:
+  appsmith:
+    image: modularui/appsmith-ce:local
+    pull_policy: never

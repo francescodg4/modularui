@@ -1,0 +1,14 @@
+# Runs this repository's editor and server on top of the official image.
+#
+# Only the two artifacts a local change usually touches are replaced: the client build and the server jar. Plugins,
+# RTS, MCP and the rest of the runtime come from the base image, so the base should be close to this branch.
+# Built by scripts/local.ps1, with deploy/docker/local-build as the context:
+#   local-build/editor      the client build (app/client/build)
+#   local-build/server.jar  the server jar (app/server/appsmith-server/target/server-*.jar)
+
+ARG BASE_IMAGE=appsmith/appsmith-ce:release
+FROM ${BASE_IMAGE}
+
+RUN rm -rf /opt/appsmith/editor
+COPY editor /opt/appsmith/editor
+COPY server.jar /opt/appsmith/server/mongo/server.jar
