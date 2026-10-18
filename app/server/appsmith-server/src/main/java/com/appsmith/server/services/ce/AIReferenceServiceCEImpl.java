@@ -1,5 +1,6 @@
 package com.appsmith.server.services.ce;
 
+import com.appsmith.server.constants.AIConstants;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
@@ -41,7 +42,8 @@ public class AIReferenceServiceCEImpl implements AIReferenceServiceCE {
      * though {@code cleanPath} plus the {@code -reference.md} suffix made traversal impractical. An allowlist closes
      * both at once, and it costs nothing: these are exactly the modes that have a bundled reference.
      */
-    private static final Set<String> SUPPORTED_MODES = Set.of("javascript", "sql", "graphql");
+    private static final Set<String> SUPPORTED_MODES =
+            Set.of("javascript", "sql", "graphql", AIConstants.BLOCK_GENERATE_MODE, AIConstants.BLOCK_AGENT_MODE);
 
     public AIReferenceServiceCEImpl() {}
 

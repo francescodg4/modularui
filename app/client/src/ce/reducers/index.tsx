@@ -90,6 +90,8 @@ import { gitReducer } from "git/store";
 import { aiAssistantReducer } from "ce/reducers/aiAssistantReducer";
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports -- Ask AI is CE-owned; CE cannot add an ee/ shim (pre-push architecture guard).
 import type { AIAssistantReduxState } from "ce/reducers/aiAssistantReducer";
+import { blockReducer } from "reducers/uiReducers/blockReducer";
+import type { BlocksReduxState } from "reducers/uiReducers/blockReducer";
 
 export const reducerObject = {
   entities: entityReducer,
@@ -101,6 +103,7 @@ export const reducerObject = {
   linting: lintErrorReducer,
   git: gitReducer,
   aiAssistant: aiAssistantReducer,
+  blocks: blockReducer,
 };
 
 export interface AppState {
@@ -200,4 +203,5 @@ export interface AppState {
     artifacts: GitArtifactRootReduxState;
   };
   aiAssistant: AIAssistantReduxState;
+  blocks: BlocksReduxState;
 }

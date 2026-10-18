@@ -170,6 +170,10 @@ import localStorage from "utils/localStorage";
 import { getNewPositions } from "./PasteWidgetUtils";
 import type { UpdateMetaWidgetPropertyPayload } from "reducers/entityReducers/metaWidgetsReducer";
 import { modifyMetaWidgets } from "actions/metaWidgetActions";
+import {
+  BLOCK_WIDGET_TYPE,
+  isBlockLiteralPropertyPath,
+} from "widgets/BlockWidget/constants";
 
 export function* resizeSaga(resizeAction: ReduxAction<WidgetResize>) {
   try {
@@ -422,7 +426,11 @@ function getDynamicBindingPathListUpdate(
    * This setting should come from widget configuration
    */
   // Figure out a holistic solutions where we donot have to stringify above.
-  if (DYNAMIC_BINDING_IGNORED_LIST.includes(propertyPath)) {
+  if (
+    DYNAMIC_BINDING_IGNORED_LIST.includes(propertyPath) ||
+    (widget.type === BLOCK_WIDGET_TYPE &&
+      isBlockLiteralPropertyPath(propertyPath))
+  ) {
     return {
       propertyPath,
       effect: DynamicPathUpdateEffectEnum.NOOP,

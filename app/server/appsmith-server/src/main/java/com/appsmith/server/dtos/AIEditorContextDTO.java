@@ -16,7 +16,8 @@ public class AIEditorContextDTO {
 
     @Size(max = 100, message = "Mode cannot exceed 100 characters") private String mode;
 
-    @Size(max = 100000, message = "Current value cannot exceed 100000 characters") private String currentValue;
+    /** The editor's current value, or for the Block widget modes the block's definition and datasources as JSON. */
+    @Size(max = 200000, message = "Current value cannot exceed 200000 characters") private String currentValue;
 
     /**
      * Unpublished action id when the AI panel was opened from a query (or other) editor — used

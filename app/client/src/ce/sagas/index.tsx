@@ -57,6 +57,7 @@ import PostEvaluationSagas from "sagas/PostEvaluationSagas";
 import copyToAppSagas from "ee/sagas/CopyToAppSagas";
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports -- Ask AI is CE-owned; CE cannot add an ee/ shim (pre-push architecture guard).
 import aiAssistantSagas from "ce/sagas/AIAssistantSagas";
+import blockSagas from "sagas/BlockSagas";
 
 /* Sagas that are registered by a module that is designed to be independent of the core platform */
 import ternSagas from "sagas/TernSaga";
@@ -122,4 +123,5 @@ export const sagas = [
   favoritesSagasListener,
   copyToAppSagas,
   aiAssistantSagas,
+  blockSagas,
 ];

@@ -99,6 +99,7 @@ const WidgetLoaders = new Map<string, () => Promise<typeof BaseWidget>>([
     "CUSTOM_WIDGET",
     async () => import("./CustomWidget").then((m) => m.default),
   ],
+  ["BLOCK_WIDGET", async () => import("./BlockWidget").then((m) => m.default)],
   [
     anvilWidgets.SECTION_WIDGET,
     async () =>

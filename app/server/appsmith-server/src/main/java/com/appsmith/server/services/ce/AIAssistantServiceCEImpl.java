@@ -52,6 +52,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.appsmith.server.constants.AIConstants.BLOCK_AGENT_MODE;
+import static com.appsmith.server.constants.AIConstants.BLOCK_GENERATE_MODE;
+import static com.appsmith.server.constants.AIConstants.BLOCK_MAX_OUTPUT_TOKENS;
+import static com.appsmith.server.constants.AIConstants.BLOCK_MAX_PROMPT_LENGTH;
 import static com.appsmith.server.constants.AIConstants.DEFAULT_AZURE_API_VERSION;
 import static com.appsmith.server.constants.AIConstants.DEFAULT_AZURE_MAX_COMPLETION_TOKENS;
 import static com.appsmith.server.constants.AIConstants.DEFAULT_CLAUDE_BASE_URL;
@@ -478,7 +482,7 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
             return Mono.error(new AppsmithException(AppsmithError.INVALID_PARAMETER, "Prompt cannot be empty"));
         }
 
-        if (userPrompt.length() > 150000) {
+        if (userPrompt.length() > maxPromptLength(context)) {
             return Mono.error(new AppsmithException(AppsmithError.INVALID_PARAMETER, "Prompt is too long"));
         }
 
@@ -507,7 +511,7 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", effectiveModel);
-        requestBody.put("max_tokens", 8192);
+        requestBody.put("max_tokens", isBlockMode(context) ? BLOCK_MAX_OUTPUT_TOKENS : 8192);
         requestBody.put("messages", messages);
         if (!messages.isEmpty() && conversationHistory != null && !conversationHistory.isEmpty()) {
             requestBody.put("system", systemPrompt);
@@ -619,7 +623,7 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
             return Mono.error(new AppsmithException(AppsmithError.INVALID_PARAMETER, "Prompt cannot be empty"));
         }
 
-        if (userPrompt.length() > 150000) {
+        if (userPrompt.length() > maxPromptLength(context)) {
             return Mono.error(new AppsmithException(AppsmithError.INVALID_PARAMETER, "Prompt is too long"));
         }
 
@@ -903,7 +907,47 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
         return trimmed.length() > maxLength ? trimmed.substring(0, maxLength) : trimmed;
     }
 
-    private String buildSystemPrompt(AIEditorContextDTO context) {
+    /**
+     * Block modes generate or change a Block widget's definition. The client parses the reply as JSON, so these modes
+     * get their own prompts: no markdown formatting rules and no general Appsmith code tips.
+     */
+    static boolean isBlockMode(AIEditorContextDTO context) {
+        String mode = context != null ? context.getMode() : null;
+        return BLOCK_GENERATE_MODE.equals(mode) || BLOCK_AGENT_MODE.equals(mode);
+    }
+
+    private static int maxPromptLength(AIEditorContextDTO context) {
+        return isBlockMode(context) ? BLOCK_MAX_PROMPT_LENGTH : 150000;
+    }
+
+    private String buildBlockSystemPrompt(AIEditorContextDTO context) {
+        return aiReferenceService.getReferenceContent(context.getMode())
+                + "\n\n## Response format\n\n"
+                + "Respond with one JSON object and nothing else: no markdown, no code fences, no explanation outside "
+                + "the JSON. The JSON must be valid: escape newlines and quotes inside strings.";
+    }
+
+    private String buildBlockUserPrompt(String prompt, AIEditorContextDTO context) {
+        String safePrompt = hasContent(prompt) ? prompt.trim() : "";
+        StringBuilder userPrompt = new StringBuilder();
+        if (hasContent(context.getCurrentValue())) {
+            userPrompt
+                    .append("Context (JSON):\n")
+                    .append(context.getCurrentValue().trim())
+                    .append("\n\n");
+        }
+        return userPrompt
+                .append("User request: ")
+                .append(safePrompt)
+                .append("\n\nRespond with the JSON object only.")
+                .toString();
+    }
+
+    String buildSystemPrompt(AIEditorContextDTO context) {
+        if (isBlockMode(context)) {
+            return buildBlockSystemPrompt(context);
+        }
+
         String mode = context != null ? context.getMode() : null;
         String modeReference = aiReferenceService.getReferenceContent(mode);
         String commonIssues = aiReferenceService.getCommonIssuesContent();
@@ -946,7 +990,11 @@ public class AIAssistantServiceCEImpl implements AIAssistantServiceCE {
         return systemPrompt.toString();
     }
 
-    private String buildUserPrompt(String prompt, AIEditorContextDTO context) {
+    String buildUserPrompt(String prompt, AIEditorContextDTO context) {
+        if (isBlockMode(context)) {
+            return buildBlockUserPrompt(prompt, context);
+        }
+
         String safePrompt = hasContent(prompt) ? prompt.trim() : "";
 
         if (context == null) {
