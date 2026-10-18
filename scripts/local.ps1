@@ -50,11 +50,12 @@ $LocalImage = "modularui/appsmith-ce:local"
 $Url = "http://localhost:8080"
 $HealthUrl = "$Url/api/v1/health"
 
-# Build containers and their caches. The client is built in a Docker volume: installing node_modules on a Windows
-# bind mount is very slow.
+# Build containers and their caches. Both builds run in Docker volumes rather than on the Windows bind mount, which
+# is slow and unreliable for large builds.
 $MavenImage = "maven:3.9-eclipse-temurin-25"
 $NodeImage = "node:24.14.1"
 $MavenCacheVolume = "appsmith-m2"
+$ServerWorkVolume = "modularui-server"
 $ClientWorkVolume = "modularui-client"
 $YarnCacheVolume = "modularui-yarn"
 
@@ -86,23 +87,35 @@ function Test-ImageExists([string]$Image) {
 function Build-Server {
     Write-Host "Building the server jar (Maven in Docker)..." -ForegroundColor Cyan
     $serverDir = Join-Path $RepoRoot "app\server"
+    $jarPath = Join-Path $StageDir "server.jar"
+    Remove-Item $jarPath -Force -ErrorAction SilentlyContinue
+
+    # Built in a Docker volume, like the client: a large Maven build on the Windows bind mount reads back stale or
+    # truncated files (classes missing right after they were compiled, a jar Spring Boot cannot repackage).
+    # No double quotes in this script: Windows PowerShell does not pass them to native commands reliably.
+    $script = @(
+        "set -e",
+        "rm -rf /work/*/src /work/*/target/*.jar",
+        "cd /src",
+        "tar --exclude=./*/target -cf - . | (cd /work && tar -xf -)",
+        "cd /work",
+        "mvn -B -ntp -pl appsmith-server -am package -DskipTests",
+        'cp $(ls appsmith-server/target/server-*.jar | grep -v original | head -n 1) /out/server.jar'
+    ) -join " && "
+
     Invoke-Native "Server build" @(
         "run", "--rm",
-        "-v", "${serverDir}:/src",
+        "-v", "${serverDir}:/src:ro",
+        "-v", "${StageDir}:/out",
+        "-v", "${ServerWorkVolume}:/work",
         "-v", "${MavenCacheVolume}:/root/.m2",
-        "-w", "/src",
         $MavenImage,
-        "mvn", "-B", "-ntp", "-pl", "appsmith-server", "-am", "package", "-DskipTests"
+        "bash", "-c", $script
     )
 
-    $jar = Get-ChildItem (Join-Path $serverDir "appsmith-server\target") -Filter "server-*.jar" |
-        Where-Object { $_.Name -notlike "original-*" } |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
-    if (-not $jar) {
-        throw "The server build produced no server-*.jar in app\server\appsmith-server\target."
+    if (-not (Test-Path $jarPath)) {
+        throw "The server build produced no server jar."
     }
-    Copy-Item $jar.FullName (Join-Path $StageDir "server.jar") -Force
 }
 
 function Build-Client {
